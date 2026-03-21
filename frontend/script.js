@@ -3,7 +3,7 @@
  * Open index.html in the browser while the server is running.
  */
 
-const BASE_URL = "http://localhost:3000";
+const BASE_URL = "https://todo-app-backend-qbav.onrender.com";
 
 const taskListEl = document.getElementById("task-list");
 const addFormEl = document.getElementById("add-form");
