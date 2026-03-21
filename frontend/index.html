@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Todo App</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="app__header">
+        <h1 class="app__title">My Tasks</h1>
+        <p class="app__subtitle">Simple list — add, complete, or remove items.</p>
+      </header>
+
+      <form class="add-form" id="add-form" autocomplete="off">
+        <label class="sr-only" for="task-input">New task</label>
+        <input
+          type="text"
+          id="task-input"
+          class="add-form__input"
+          placeholder="What do you need to do?"
+          maxlength="500"
+        />
+        <button type="submit" class="btn btn--primary">Add</button>
+      </form>
+
+      <p class="status" id="status" role="status" aria-live="polite"></p>
+
+      <ul class="task-list" id="task-list"></ul>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
