@@ -1,0 +1,17 @@
+{
+  "availability": {
+    "healthEndpoint": "/health",
+    "target": "API responds 200 for health checks."
+  },
+  "performance": {
+    "writeRateLimit": "120 write requests/minute/IP",
+    "requestBodyLimit": "10kb JSON payload"
+  },
+  "reliability": {
+    "inputValidation": [
+      "Task text must be non-empty.",
+      "Task text max length is 500 chars.",
+      "Content-Type must be application/json for POST /tasks."
+    ]
+  }
+}

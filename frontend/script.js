@@ -3,7 +3,12 @@
  * Open index.html in the browser while the server is running.
  */
 
-const BASE_URL = "https://todo-app-backend-qbav.onrender.com";
+const DEFAULT_REMOTE_API = "https://todo-app-backend-qbav.onrender.com";
+const BASE_URL =
+  window.location.hostname === "localhost" ||
+  window.location.hostname === "127.0.0.1"
+    ? "http://localhost:3000"
+    : DEFAULT_REMOTE_API;
 
 const taskListEl = document.getElementById("task-list");
 const addFormEl = document.getElementById("add-form");

@@ -10,11 +10,35 @@ const path = require("path");
 
 const PORT = process.env.PORT || 3000;
 const DATA_FILE = path.join(__dirname, "data.json");
+const MAX_TEXT_LENGTH = 500;
+const MAX_REQUESTS_PER_MINUTE = 120;
+const RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const requestLogByIp = new Map();
 
 const app = express();
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "10kb" }));
+
+function rateLimit(req, res, next) {
+  const ip = req.ip || req.socket.remoteAddress || "unknown";
+  const now = Date.now();
+  const state = requestLogByIp.get(ip) || { count: 0, windowStart: now };
+
+  if (now - state.windowStart >= RATE_LIMIT_WINDOW_MS) {
+    state.count = 0;
+    state.windowStart = now;
+  }
+
+  state.count += 1;
+  requestLogByIp.set(ip, state);
+
+  if (state.count > MAX_REQUESTS_PER_MINUTE) {
+    return res.status(429).json({ error: "Too many requests, please retry later" });
+  }
+
+  return next();
+}
 
 /**
  * Ensure data.json exists. If missing or unreadable, start with an empty list.
@@ -67,6 +91,14 @@ function writeTasks(tasks) {
 
 // --- Routes ---
 
+app.get("/health", (req, res) => {
+  res.json({
+    status: "ok",
+    uptimeSec: Math.floor(process.uptime()),
+    timestamp: new Date().toISOString(),
+  });
+});
+
 app.get("/tasks", (req, res) => {
   try {
     const tasks = readTasks();
@@ -78,14 +110,23 @@ app.get("/tasks", (req, res) => {
   }
 });
 
-app.post("/tasks", (req, res) => {
+app.post("/tasks", rateLimit, (req, res) => {
   try {
+    if (!req.is("application/json")) {
+      return res.status(415).json({ error: "Content-Type must be application/json" });
+    }
+
     const text =
       typeof req.body.text === "string" ? req.body.text.trim() : "";
 
     if (!text) {
       console.log("[POST /tasks] rejected — empty text");
       return res.status(400).json({ error: "text is required (non-empty string)" });
+    }
+    if (text.length > MAX_TEXT_LENGTH) {
+      return res
+        .status(400)
+        .json({ error: `text is too long (max ${MAX_TEXT_LENGTH} characters)` });
     }
 
     const tasks = readTasks();
@@ -106,7 +147,7 @@ app.post("/tasks", (req, res) => {
   }
 });
 
-app.delete("/tasks/:id", (req, res) => {
+app.delete("/tasks/:id", rateLimit, (req, res) => {
   try {
     const id = Number(req.params.id);
     if (Number.isNaN(id)) {
@@ -131,7 +172,7 @@ app.delete("/tasks/:id", (req, res) => {
   }
 });
 
-app.put("/tasks/:id", (req, res) => {
+app.put("/tasks/:id", rateLimit, (req, res) => {
   try {
     const id = Number(req.params.id);
     if (Number.isNaN(id)) {
@@ -166,7 +207,11 @@ app.put("/tasks/:id", (req, res) => {
 // Start
 ensureDataFile();
 
-app.listen(PORT, () => {
-  console.log(`Todo API listening at http://localhost:${PORT}`);
-  console.log("Try: GET http://localhost:3000/tasks");
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Todo API listening at http://localhost:${PORT}`);
+    console.log("Try: GET http://localhost:3000/tasks");
+  });
+}
+
+module.exports = { app, readTasks, writeTasks, ensureDataFile, DATA_FILE };
